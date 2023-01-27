@@ -1,0 +1,77 @@
+# ------------------------------------------------------------
+# Description
+# ------------------------------------------------------------
+$description = <<'EOS'
+# ubuntu for testing OpenStack
+
+## VM user & password
+user: vagrant
+password: vagrant
+
+## OpenStack user & password
+user: admin
+password: password
+EOS
+
+
+# ------------------------------------------------------------
+# # vagrant configure version 2
+# ------------------------------------------------------------
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vbguest.auto_update = false
+
+  controller = "devstack-node"
+  config.vm.define controller do |host|
+      # vm name
+      host.vm.hostname = controller
+      # ubuntu image
+      host.vm.box = "ubuntu/jammy64"
+
+      # network
+      host.vm.network 'private_network', ip: '192.168.110.10'
+      # port
+      # host.vm.network 'forwarded_port', guest: 8888, host: 8888
+
+      # share directory
+      host.vm.synced_folder '../', '/home/vagrant/share'
+
+      # install package
+      host.vm.provision 'shell', path: "scripts/install_pkg.sh"
+      host.vm.provision 'shell', path: "scripts/install_openstack.sh"
+    #   host.vm.provision 'shell', inline: <<-SCRIPT
+    #       sudo apt install -y --no-install-recommends lubuntu-desktop
+    #   SCRIPT
+      host.vm.provision 'shell', inline: <<-SCRIPT
+          systemctl restart sshd
+      SCRIPT
+
+      # config virtual box
+      host.vm.provider "virtualbox" do |vb|
+          vb.name = controller
+          vb.gui = true
+
+          vb.cpus = 6
+          vb.memory = "16384"
+      
+          vb.customize [
+              "modifyvm", :id,
+              "--vram", "32", 
+              "--clipboard", "bidirectional", # clip board
+              "--draganddrop", "bidirectional", # drag and drop
+              "--ioapic", "on", # enable I/O APIC
+              '--graphicscontroller', 'vmsvga',
+              "--nested-hw-virt", "on",
+              "--accelerate3d", "off",
+              "--hwvirtex", "on",
+              "--nestedpaging", "on",
+              "--largepages", "on",
+              "--pae", "on",
+              '--audio', 'none',
+              "--uartmode1", "disconnected",
+              "--description", $description
+          ]
+      end
+  end
+end
