@@ -1,0 +1,171 @@
+# vm name prefix
+$base_name = "openstack-"
+
+# enable vm gui
+$gui = false
+
+
+# ------------------------------------------------------------
+# Description
+# ------------------------------------------------------------
+$description = <<'EOS'
+# Vagrantfile for OpenStack-ansible
+
+## User and Password
+user: vagrant
+password: vagrant
+EOS
+
+
+# ------------------------------------------------------------
+# vagrant configuration
+# ------------------------------------------------------------
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vbguest.auto_update = false
+
+  config.vm.synced_folder './', '/home/vagrant/share', mount_options: ["dmode=775,fmode=664"]
+
+  config.vm.provision "shell", path: "scripts/common.sh"
+
+    # ----------- controler  Nodes -----------
+    controller_name = $base_name + "controller"
+    config.vm.define controller_name do |node|
+      node.vm.hostname = controller_name
+      node.vm.box = "bento/ubuntu-20.04"
+  
+      node.vm.network "private_network", virtualbox__intnet: "mgmt0", ip: "172.16.0.11", netmask:"255.255.255.0"
+      node.vm.network "private_network", ip: "172.17.0.11", netmask:"255.255.255.0"
+  
+      node.vm.provision "shell", path: "scripts/setup_controller.sh"
+      node.vm.provision 'shell', inline: <<-SCRIPT
+          cat "PermitRootLogin yes" | sudo tee -a /etc/ssh/sshd_config
+          sudo  systemctl restart sshd
+      SCRIPT
+  
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = controller_name
+        vb.gui = $gui
+        vb.cpus = 4
+        vb.memory = 8192
+        vb.customize [
+          "modifyvm", :id,
+          "--vram", "32", 
+          "--clipboard", "bidirectional", # clip board
+          "--draganddrop", "bidirectional", # drag and drop
+          "--ioapic", "on", # enable I/O APIC
+          '--graphicscontroller', 'vmsvga',
+          "--accelerate3d", "off",
+          "--hwvirtex", "on",
+          "--nestedpaging", "on",
+          "--largepages", "on",
+          "--pae", "on",
+          '--audio', 'none',
+          "--uartmode1", "disconnected",
+          "--nic3", "natnetwork",
+          "--nat-network3", "access0",
+          "--description", $description
+        ]
+        
+        disk = "/tmp/sdb0.vdi"
+        drive = "D:"
+        disk_file = drive + disk
+        # for wsl1
+        unless File.exists?(disk_file) || File.exists?("/mnt/d" + disk)
+          vb.customize [
+            'createmedium', 'disk',
+            '--filename', disk_file,
+            '--format', 'VDI',
+            '--size', 30 * 1024
+          ]
+        end
+        vb.customize [
+          'storageattach', :id,
+          '--storagectl', 'SATA Controller',
+          '--port', 1,
+          '--device', 0,
+          '--type', 'hdd',
+          '--medium', disk_file
+        ]
+      end
+    end
+  
+    compute_name = $base_name + "compute"
+    config.vm.define compute_name do |node|
+      node.vm.hostname = compute_name
+      node.vm.box = "bento/ubuntu-20.04"
+
+      node.vm.network "private_network", virtualbox__intnet: "mgmt0", ip: "172.16.0.12", netmask:"255.255.255.0"
+      node.vm.network "private_network", ip: "172.17.0.12", netmask:"255.255.255.0"
+  
+      node.vm.provision "shell", path: "scripts/setup_compute.sh"
+      node.vm.provision 'shell', inline: <<-SCRIPT
+          cat "PermitRootLogin yes" | sudo tee -a /etc/ssh/sshd_config
+          sudo  systemctl restart sshd
+      SCRIPT
+  
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = compute_name
+        vb.gui = $gui
+        vb.cpus = 4
+        vb.memory = 8192
+        vb.customize [
+          "modifyvm", :id,
+          "--vram", "32", 
+          "--clipboard", "bidirectional", # clip board
+          "--draganddrop", "bidirectional", # drag and drop
+          "--ioapic", "on", # enable I/O APIC
+          '--graphicscontroller', 'vmsvga',
+          "--accelerate3d", "off",
+          "--hwvirtex", "on",
+          "--nestedpaging", "on",
+          "--largepages", "on",
+          "--pae", "on",
+          '--audio', 'none',
+          "--uartmode1", "disconnected",
+          "--nic3", "natnetwork",
+        "--nat-network3", "access0",
+          "--description", $description
+        ]
+      end
+    end
+
+  # ----------- Master -----------
+  master_name = $base_name + "master"
+  config.vm.define master_name do |master|
+    master.vm.hostname = master_name
+    master.vm.box = "bento/ubuntu-20.04"
+
+    master.vm.network "private_network", virtualbox__intnet: "mgmt0", ip: "172.16.0.10", netmask:"255.255.255.0"
+    master.vm.network "private_network", ip: "172.17.0.10", netmask:"255.255.255.0"
+
+    master.vm.provision "shell", path: "scripts/setup_master.sh"
+    master.vm.provision "shell", path: "scripts/setup_os_master.sh"
+
+    master.vm.provider "virtualbox" do |vb|
+      vb.name = master_name
+      vb.gui = $gui
+      vb.cpus = 1
+      vb.memory = 2048
+      vb.customize [
+        "modifyvm", :id,
+        "--vram", "32", 
+        "--clipboard", "bidirectional", # clip board
+        "--draganddrop", "bidirectional", # drag and drop
+        "--ioapic", "on", # enable I/O APIC
+        '--graphicscontroller', 'vmsvga',
+        "--accelerate3d", "off",
+        "--hwvirtex", "on",
+        "--nestedpaging", "on",
+        "--largepages", "on",
+        "--pae", "on",
+        '--audio', 'none',
+        "--uartmode1", "disconnected",
+        "--nic3", "natnetwork",
+        "--nat-network3", "access0",
+        "--description", $description
+      ]
+    end
+  end
+end
