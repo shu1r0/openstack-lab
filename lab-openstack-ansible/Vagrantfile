@@ -47,8 +47,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       node.vm.provider "virtualbox" do |vb|
         vb.name = controller_name
         vb.gui = $gui
-        vb.cpus = 4
-        vb.memory = 8192
+        vb.cpus = 10
+        vb.memory = 24576
         vb.customize [
           "modifyvm", :id,
           "--vram", "32", 
