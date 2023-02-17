@@ -17,7 +17,7 @@ sshpass -p "vagrant" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 
 
 sudo ssh-keygen -t rsa -f /root/.ssh/id_rsa -N ""
-sudo chmod 644 /root/.ssh/id_rsa
+sudo chmod 600 /root/.ssh/id_rsa
 sudo sshpass -p "vagrant" scp -o StrictHostKeyChecking=no /root/.ssh/id_rsa.pub vagrant@172.16.0.11:/home/vagrant/id_rsa_root.pub
 sshpass -p "vagrant" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vagrant@172.16.0.11 "cat id_rsa_root.pub | tee -a .ssh/authorized_keys"
 sshpass -p "vagrant" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null vagrant@172.16.0.11 "cat id_rsa_root.pub | sudo tee -a /root/.ssh/authorized_keys"

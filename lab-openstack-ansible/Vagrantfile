@@ -2,7 +2,7 @@
 $base_name = "openstack-"
 
 # enable vm gui
-$gui = false
+$gui = true
 
 
 # ------------------------------------------------------------
@@ -40,7 +40,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
       node.vm.provision "shell", path: "scripts/setup_controller.sh"
       node.vm.provision 'shell', inline: <<-SCRIPT
-          cat "PermitRootLogin yes" | sudo tee -a /etc/ssh/sshd_config
+          echo "PermitRootLogin yes" | sudo tee -a /etc/ssh/sshd_config
           sudo  systemctl restart sshd
       SCRIPT
   
@@ -101,7 +101,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
       node.vm.provision "shell", path: "scripts/setup_compute.sh"
       node.vm.provision 'shell', inline: <<-SCRIPT
-          cat "PermitRootLogin yes" | sudo tee -a /etc/ssh/sshd_config
+          echo "PermitRootLogin yes" | sudo tee -a /etc/ssh/sshd_config
           sudo  systemctl restart sshd
       SCRIPT
   
